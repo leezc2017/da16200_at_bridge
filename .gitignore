@@ -1,0 +1,51 @@
+# ============================================================================
+# da16200_at_bridge (RA4M2 + DA16200 AT 透传桥) .gitignore
+#
+# 原则: 提交"源码 + 可复现配置"，不提交"构建产物 + IDE 本地状态"
+# ============================================================================
+
+# ---- 构建产物（含 e2studio 生成的 makefile / compile_commands.json）----
+Debug/
+*.o
+*.d
+*.in
+*.elf
+*.hex
+*.srec
+*.map
+*.rpd
+*.sbd
+*.bin
+
+# ---- 日志 / 串口抓取 / 临时数据 ----
+log/
+*.log
+AUTO*.txt
+AUTOB*.txt
+*.bak
+
+# ---- e2studio / Eclipse 本地状态（含本机绝对路径，不提交）----
+.settings/
+metadata/
+*.launch
+
+# ---- 编辑器 ----
+.vscode/
+.idea/
+*.swp
+*~
+
+# ---- 系统 ----
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ============================================================================
+# 以下【刻意提交】，不要加进忽略：
+#   ra/                 FSP 6.6 库与 CMSIS（约 5.3MB，离线也能编译）
+#   ra_gen/             FSP 生成代码（hal_data / pin_data / vector_data）
+#   ra_cfg/ + ra_cfg.txt FSP 配置参数
+#   script/fsp.ld       链接脚本
+#   .project / .cproject / configuration.xml   e2studio 工程文件
+#   doc/README.md       工程功能说明
+# ============================================================================
