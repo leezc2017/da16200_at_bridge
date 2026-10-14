@@ -5,8 +5,8 @@
 #include <errno.h>
 
 #define TICK_MS          (10U)       /* 主循环节拍 */
-#define RX_RING_SIZE     (128U)      /* 接收环形缓冲长度 */
-#define RX_LINE_MAX      (100U)      /* 单行最大长度 */
+#define RX_RING_SIZE     (1024U)     /* 接收环形缓冲长度 */
+#define RX_LINE_MAX      (512U)      /* 单行最大长度（含字符串结束符） */
 
 fsp_err_t err = FSP_SUCCESS;
 
@@ -17,9 +17,12 @@ volatile bool usb_uart_send_complete_flag = false;
 static volatile char rx_ring[RX_RING_SIZE];
 static volatile uint16_t rx_wr_index = 0;
 static volatile uint16_t rx_rd_index = 0;
+static volatile bool rx_ring_overflowed = false;
 
 static char rx_line[RX_LINE_MAX];
 static uint16_t rx_line_len = 0;
+static bool rx_line_overflow = false;
+static bool rx_ring_overflow_reported = false;
 
 void usb_uart_cb (uart_callback_args_t * p_args)
 {
@@ -38,6 +41,10 @@ void usb_uart_cb (uart_callback_args_t * p_args)
                 rx_ring[rx_wr_index] = (char)p_args->data;
                 rx_wr_index = next;
             }
+            else
+            {
+                rx_ring_overflowed = true;
+            }
             break;
         }
         default:
@@ -55,9 +62,11 @@ volatile bool wifi_uart_send_complete_flag = false;
 static volatile char wifi_rx_ring[RX_RING_SIZE];
 static volatile uint16_t wifi_rx_wr_index = 0;
 static volatile uint16_t wifi_rx_rd_index = 0;
+static volatile bool wifi_rx_ring_overflowed = false;
 
 static char wifi_rx_line[RX_LINE_MAX];
 static uint16_t wifi_rx_line_len = 0;
+static bool wifi_rx_ring_overflow_reported = false;
 
 
 /* DA16200 WIFI 口回调: 发送完成标志 + 收到字符入环形缓冲 */
@@ -77,6 +86,10 @@ void wifi_uart_cb (uart_callback_args_t * p_args)
             {
                 wifi_rx_ring[wifi_rx_wr_index] = (char)p_args->data;
                 wifi_rx_wr_index = next;
+            }
+            else
+            {
+                wifi_rx_ring_overflowed = true;
             }
             break;
         }
@@ -151,9 +164,9 @@ static void wifi_line_send (const char * p_buf, uint16_t len)
     static char tx_buf[RX_LINE_MAX + 2];
     uint16_t tx_len = 0U;
 
-    if (len > RX_LINE_MAX)
+    if (len >= RX_LINE_MAX)
     {
-        len = RX_LINE_MAX;
+        len = RX_LINE_MAX - 1U;
     }
 
     memcpy(tx_buf, p_buf, len);
@@ -197,22 +210,30 @@ static void usb_uart_rx_process (void)
         char c = rx_ring[rx_rd_index];
         rx_rd_index = (uint16_t)((rx_rd_index + 1U) % RX_RING_SIZE);
 
-        if ((c == '\r') || (c == '\n'))     /* 换行符作为结束标志 */
+        if ((c == '\r') || (c == '\n'))
         {
-            rx_line_flush();                /* 输出整行(\r\n 只输出一次) */
+            if (rx_line_overflow)
+            {
+                rx_line_len = 0U;
+                rx_line_overflow = false;
+                printf("[ERR] USB command too long, discarded\r\n");
+            }
+            else
+            {
+                rx_line_flush();
+            }
         }
-        else if (rx_line_len < (RX_LINE_MAX - 1U))
+        else if (!rx_line_overflow && (rx_line_len < (RX_LINE_MAX - 1U)))
         {
             rx_line[rx_line_len++] = c;
         }
-        else                                /* 缓冲满, 先输出再存, 防止溢出 */
+        else if (!rx_line_overflow)
         {
-            rx_line_flush();
-            rx_line[rx_line_len++] = c;
+            rx_line_len = 0U;
+            rx_line_overflow = true;
         }
     }
 }
-
 static void wifi_rx_line_flush (void)
 {
     if (wifi_rx_line_len > 0U)
@@ -266,6 +287,17 @@ void hal_entry(void)
     while (1)
     {
         R_BSP_SoftwareDelay(TICK_MS, BSP_DELAY_UNITS_MILLISECONDS);
+
+        if (rx_ring_overflowed && !rx_ring_overflow_reported)
+        {
+            rx_ring_overflow_reported = true;
+            printf("[ERR] USB RX ring overflow, input bytes dropped\r\n");
+        }
+        if (wifi_rx_ring_overflowed && !wifi_rx_ring_overflow_reported)
+        {
+            wifi_rx_ring_overflow_reported = true;
+            printf("[ERR] WIFI RX ring overflow, response bytes dropped\r\n");
+        }
 
         usb_uart_rx_process();               /* USB 输入转发给 WIFI 串口 */
         wifi_uart_rx_process();              /* WIFI 返回打印到 USB */
