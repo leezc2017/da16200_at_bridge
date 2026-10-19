@@ -144,7 +144,7 @@ $mk = "$env:FSP_ROOT\eclipse\plugins\com.renesas.ide.exttools.gnumake.win32.x86_
 
 产物：`Debug/da16200_at_bridge.elf`、`Debug/da16200_at_bridge.hex`。
 
-代码规模（当前）：`text 8992, data 100, bss 10400`。
+代码规模（当前）：`text 9252, data 100, bss 13444`。
 
 ## 7. 关键配置/背景知识
 
@@ -162,7 +162,7 @@ da16200_at_bridge/
 ├── ra_cfg/                FSP 配置参数（含参数检查开关）
 ├── ra/                    FSP 驱动与 CMSIS 库
 ├── script/fsp.ld          链接脚本
-├── Debug/                 构建产物与 makefile
+├── Debug/                 构建描述（makefile/*.mk/*.ld，已入库）+ 产物（忽略）
 ├── doc/                   本说明文档
 ├── .project / .cproject   e2studio 工程文件
 └── configuration.xml      FSP 配置快照

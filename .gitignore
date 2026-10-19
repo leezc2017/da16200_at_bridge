@@ -1,11 +1,28 @@
 # ============================================================================
 # da16200_at_bridge (RA4M2 + DA16200 AT 透传桥) .gitignore
 #
-# 原则: 提交"源码 + 可复现配置"，不提交"构建产物 + IDE 本地状态"
+# 原则: 提交"源码 + 可复现的构建描述 + 配置"，不提交"产物 + IDE 本地状态"
 # ============================================================================
 
-# ---- 构建产物（含 e2studio 生成的 makefile / compile_commands.json）----
-Debug/
+# ---- 构建产物 ----
+# 注意：Debug/ 目录本身【不】整体忽略。其中的构建描述文件——
+#   makefile / makefile.init / sources.mk / objects.mk / */subdir.mk
+#   fsp_gen.ld / memory_regions.ld / bsp_linker_info.h
+# 已入库，路径为相对路径，新克隆的工程无需打开 e2studio 即可 make。
+# 下面只忽略真正由构建产生的文件。
+Debug/*.elf
+Debug/*.hex
+Debug/*.srec
+Debug/*.map
+Debug/*.rpd
+Debug/*.sbd
+Debug/*.siz
+Debug/*.in
+Debug/*.tmp
+Debug/clean_file.tmp
+Debug/compile_commands.json
+Debug/**/*.o
+Debug/**/*.d
 *.o
 *.d
 *.in
@@ -15,7 +32,6 @@ Debug/
 *.map
 *.rpd
 *.sbd
-*.bin
 
 # ---- 日志 / 串口抓取 / 临时数据 ----
 log/
@@ -42,10 +58,10 @@ desktop.ini
 
 # ============================================================================
 # 以下【刻意提交】，不要加进忽略：
-#   ra/                 FSP 6.6 库与 CMSIS（约 5.3MB，离线也能编译）
-#   ra_gen/             FSP 生成代码（hal_data / pin_data / vector_data）
+#   ra/                  FSP 6.6 库与 CMSIS（约 5.3MB，离线也能编译）
+#   ra_gen/              FSP 生成代码（hal_data / pin_data / vector_data）
 #   ra_cfg/ + ra_cfg.txt FSP 配置参数
-#   script/fsp.ld       链接脚本
+#   script/fsp.ld        链接脚本
 #   .project / .cproject / configuration.xml   e2studio 工程文件
-#   doc/README.md       工程功能说明
+#   doc/README.md        工程功能说明
 # ============================================================================
